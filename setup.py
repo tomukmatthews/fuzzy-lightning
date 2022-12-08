@@ -5,7 +5,7 @@ packages = \
 ['fast_fuzzy_matching']
 
 package_data = \
-{'': ['*'], 'fast_fuzzy_matching': ['lcs/*']}
+{'': ['*'], 'fast_fuzzy_matching': ['cpp/*']}
 
 install_requires = \
 ['pandas>=1.5.2,<2.0.0',
@@ -28,7 +28,7 @@ setup_kwargs = {
     'packages': packages,
     'package_data': package_data,
     'install_requires': install_requires,
-    'python_requires': '>=3.10,<4.0',
+    'python_requires': '>=3.10.7',
 }
 from build import *
 build(setup_kwargs)
