@@ -199,6 +199,17 @@ python-versions = ">=3.6"
 global = ["pybind11-global (==2.10.1)"]
 
 [[package]]
+name = "pylcs"
+version = "0.0.7"
+description = "super fast cpp implementation of longest common subsequence"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+pybind11 = ">=2.2"
+
+[[package]]
 name = "pyparsing"
 version = "3.0.9"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -349,7 +360,7 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "6142c29f9ba42a6852d210a35c4831fde6203513560e38cc18c82da3db1cf4b4"
+content-hash = "0841e15b4bb95f6273558eb3410ae74defc40092a3c2abcb21ff8fc17371b64f"
 
 [metadata.files]
 attrs = [
@@ -492,6 +503,10 @@ pprintpp = [
 pybind11 = [
     {file = "pybind11-2.10.1-py3-none-any.whl", hash = "sha256:ebf3eeac46859a2e10077ae45378ba3f33d999a9064697a3464fba1a4a04fc0a"},
     {file = "pybind11-2.10.1.tar.gz", hash = "sha256:c9571b8a6607c8e90ea156a2a455383b9911f89da414e9f5e251ab58dc3e3c71"},
+]
+pylcs = [
+    {file = "pylcs-0.0.7-cp37-cp37m-win_amd64.whl", hash = "sha256:bf3b70fa3412a998a97d68c4358563bfc61cf2ccd7b67d02ff001d10db804d7a"},
+    {file = "pylcs-0.0.7.tar.gz", hash = "sha256:c13937ee7d153cf1ad03f0d208c5a46f1349037b3d9bd773340c6b1a60272aae"},
 ]
 pyparsing = [
     {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
