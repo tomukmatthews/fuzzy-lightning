@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include "array.h"
 
 #include <vector>
 #include <tuple>
@@ -29,7 +30,7 @@ int longest_common_substring_length(const u32string &str1, const u32string &str2
     const int str2_length = str2.length();
 
     // Initialise 1D array to store the length of the longest common substring ending at each index.
-    vector<int> common_substr_lens((str1_length + 1) * (str2_length + 1), 0);
+    IntArray2D common_substr_lens(str1_length + 1, str2_length + 1);
 
     int longest_common_substr_len = 0;
 
@@ -41,10 +42,8 @@ int longest_common_substring_length(const u32string &str1, const u32string &str2
             if (str1[i - 1] == str2[j - 1])
             {
                 // If characters match, add 1 to the length of the longest common substring ending at the previous index.
-                int common_substr_lens_idx = i * (str2_length + 1) + j;
-                int prev_common_substr_lens_idx = common_substr_lens_idx - str2_length - 2;
-                common_substr_lens[common_substr_lens_idx] = common_substr_lens[prev_common_substr_lens_idx] + 1;
-                longest_common_substr_len = std::max(common_substr_lens[common_substr_lens_idx], longest_common_substr_len);
+                common_substr_lens.set(i, j, common_substr_lens.get(i - 1, j - 1) + 1);
+                longest_common_substr_len = std::max(common_substr_lens.get(i, j), longest_common_substr_len);
             }
         }
     }
@@ -69,19 +68,32 @@ std::vector<int> longest_common_substring_lengths(const u32string &str, const ve
     return common_substr_lens;
 }
 
-bool is_valid_entity_match(const u32string &no_space_str,
-                           const u32string &no_space_entity_match,
+/**
+ * Identifies match candidates which don't qualify for consideration in longest common substring.
+ *
+ * @param preprocessed_str: a Unicode string in UTF-32 encoding after being preprocessed.
+ * @param preprocessed_entity_match: a Unicode string in UTF-32 encoding after being preprocessed, to be compared with
+ * preprocessed_str.
+ * @param min_characters: the minimum number of characters that the strings must have in common to be considered a valid
+ * match.
+ * @param min_length_ratio: the minimum ratio of the length of the preprocessed_entity_match to the length of
+ * preprocessed_str that must be satisfied for the match to be considered valid.
+ *
+ * @return: true if the preprocessed_entity_match is a valid match for preprocessed_str, or false otherwise.
+ */
+bool is_valid_entity_match(const u32string &preprocessed_str,
+                           const u32string &preprocessed_entity_match,
                            const int min_characters,
                            const float min_length_ratio)
 {
     // Identifies match candidates which don't qualify for consideration in longest common substring.
 
-    if (no_space_entity_match.length() > no_space_str.length())
+    if (preprocessed_entity_match.length() > preprocessed_str.length())
     {
-        size_t min_length = max((int)(no_space_entity_match.length() * min_length_ratio), min_characters);
-        bool no_substring_match = no_space_str.substr(0, min_length) != no_space_entity_match.substr(0, min_length);
+        size_t min_length = max((int)(preprocessed_entity_match.length() * min_length_ratio), min_characters);
+        bool no_substring_match = preprocessed_str.substr(0, min_length) != preprocessed_entity_match.substr(0, min_length);
 
-        if (no_space_str.length() < min_length || no_substring_match)
+        if (preprocessed_str.length() < min_length || no_substring_match)
         {
             return false;
         }
@@ -89,8 +101,22 @@ bool is_valid_entity_match(const u32string &no_space_str,
     return true;
 }
 
-tuple<int, float> get_lcs_best_match_idx(const u32string &no_space_str,
-                                         const vector<u32string> &no_space_entity_matches,
+/**
+ * Selects the best match from a set of candidates using the highest match ratio of longest common substring to
+ * string length.
+ *
+ * @param preprocessed_str: A Unicode string that has been preprocessed to remove unwanted characters.
+ * @param preprocessed_entity_matches: A vector of Unicode strings that have been preprocessed to remove unwanted
+ * characters.
+ * @param min_characters: The minimum number of characters that a match must have to be considered valid.
+ * @param min_length_ratio: The minimum ratio of length of the longest common substring to the length of the shortest
+ * string that a match must have to be considered valid.
+ *
+ * @return: A tuple containing the index of the best match in preprocessed_entity_matches, and the ratio of the longest
+ * common substring to the length of the shortest string.
+ */
+tuple<int, float> get_lcs_best_match_idx(const u32string &preprocessed_str,
+                                         const vector<u32string> &preprocessed_entity_matches,
                                          const int min_characters,
                                          const float min_length_ratio)
 {
@@ -100,15 +126,15 @@ tuple<int, float> get_lcs_best_match_idx(const u32string &no_space_str,
     // Use -1 index to denote no valid matches.
     int best_match_idx = -1;
     float best_match_ratio = 0.0;
-    for (size_t i = 0; i < no_space_entity_matches.size(); i++)
+    for (size_t i = 0; i < preprocessed_entity_matches.size(); i++)
     {
-        if (is_valid_entity_match(no_space_str,
-                                  no_space_entity_matches[i],
+        if (is_valid_entity_match(preprocessed_str,
+                                  preprocessed_entity_matches[i],
                                   min_characters,
                                   min_length_ratio))
         {
-            int shortest_str_len = min(no_space_str.length(), no_space_entity_matches[i].length());
-            float match_ratio = longest_common_substring_length(no_space_str, no_space_entity_matches[i]) / (float)shortest_str_len;
+            int shortest_str_len = min(preprocessed_str.length(), preprocessed_entity_matches[i].length());
+            float match_ratio = longest_common_substring_length(preprocessed_str, preprocessed_entity_matches[i]) / (float)shortest_str_len;
 
             if (match_ratio > best_match_ratio)
             {
@@ -131,11 +157,11 @@ PYBIND11_MODULE(lcs, m)
     m.def("get_lcs_best_match_idx", &get_lcs_best_match_idx, R"pbdoc(
                         A function to find the best match between a str and a set of entity matches.
             )pbdoc",
-          py::arg("no_space_str"), py::arg("no_space_entity_matches"), py::arg("min_characters"),
+          py::arg("preprocessed_str"), py::arg("preprocessed_entity_matches"), py::arg("min_characters"),
           py::arg("min_length_ratio"));
     m.def("is_valid_entity_match", &is_valid_entity_match, R"pbdoc(
                         A function to determine if a candidate entity match is valid (exposing this for testing only!).
             )pbdoc",
-          py::arg("no_space_str"), py::arg("no_space_entity_match"), py::arg("min_characters"),
+          py::arg("preprocessed_str"), py::arg("preprocessed_entity_match"), py::arg("min_characters"),
           py::arg("min_length_ratio"));
 }

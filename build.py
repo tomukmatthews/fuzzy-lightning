@@ -5,7 +5,7 @@ CPP_VERSION = 11
 
 def build(setup_kwargs):
     ext_modules = [
-        Pybind11Extension("lcs", ["fast_fuzzy_matching/lcs/lcs.cpp"], cxx_std=CPP_VERSION),
+        Pybind11Extension("lcs", ["fast_fuzzy_matching/cpp/lcs.cpp"], cxx_std=CPP_VERSION),
     ]
     setup_kwargs.update(
         {
