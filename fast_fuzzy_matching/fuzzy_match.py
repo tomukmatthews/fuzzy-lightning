@@ -1,9 +1,9 @@
 """
-Fuzzy matching strings to target strings (entities) in dictionaries.
-Converts strings and the dictionary keys to vectors using sklearn TF-IDF vectorizers on character n-grams. Then
-generates a shortlist of match candidates from the top N nearest neighbours (cosine similarity) of dictionary key
-vectors for each string (ordered from best match to worst). This list of candidates is then pruned to select the best
-match using the longest common substring to length ratio.
+Fuzzy matching strings to target strings (entities).
+Converts strings to vectors using sklearn TF-IDF vectorizers on character n-grams. The generates a shortlist of match
+candidates from the top N nearest neighbours (cosine similarity) of dictionary key vectors for each string (ordered
+from best match to worst). This list of candidates is then pruned to select the best match using the longest common
+substring to length ratio.
 """
 
 from __future__ import annotations
@@ -11,16 +11,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from functools import partial, singledispatchmethod
 from itertools import groupby
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
-import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sparse_dot_topn import awesome_cossim_topn as get_topn_nearest_neighbours
 
 import lcs
-from fast_fuzzy_matching.profile_utils import profile
 
 
 def get_ngrams(string: str, n: int, pad: bool = True) -> List[str]:

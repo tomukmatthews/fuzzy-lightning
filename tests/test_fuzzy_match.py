@@ -1,5 +1,6 @@
+"""Test fuzzy match."""
+
 import numpy as np
-import pandas as pd
 import pytest
 from scipy.sparse import csr_matrix
 from sklearn.utils.validation import check_is_fitted
