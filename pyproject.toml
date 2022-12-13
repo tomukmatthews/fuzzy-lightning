@@ -28,6 +28,7 @@ pytest = "^7.2.0"
 pytest-icdiff = "^0.6"
 pylcs = "^0.0.7"
 pyinstrument = "^4.4.0"
+flake8 = "^6.0.0"
 
 [tool.black]
 line-length = 120
