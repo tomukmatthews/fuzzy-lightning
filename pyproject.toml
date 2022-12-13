@@ -5,7 +5,7 @@ description = "Perform fast approximate string matching."
 license = "MIT"
 authors = ["Tom Matthews <tomukmatthews@gmail.com>"]
 readme = "README.md"
-packages = [{include = "fast_fuzzy_matching"}]
+# packages = [{include = "fast_fuzzy_matching"}]
 
 [tool.poetry.dependencies]
 python = "^3.9.14"
@@ -37,5 +37,5 @@ profile = "black"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.build]
-script = "build.py"
+# [tool.poetry.build]
+# script = "build.py"
