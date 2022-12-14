@@ -2,8 +2,9 @@
 Edit distance tests.
 """
 
-import edit_distance as ed
 import pytest
+
+import edit_distance as ed
 
 
 @pytest.mark.parametrize(
