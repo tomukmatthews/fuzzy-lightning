@@ -27,3 +27,10 @@ def profile(func):
         return retval
 
     return wrapper
+
+
+import edit_distance as ed
+from timeit import timeit
+
+str1, str2 = ('beersteinbeer', 'stein')
+print(timeit('ed.damerau_levenshtein(str1, str2)', number=100000, globals=globals()))
