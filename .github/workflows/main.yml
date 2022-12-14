@@ -70,7 +70,7 @@ jobs:
 
       - name: Run black formatting check
         run: |
-          poetry run black --check --exclude setup.py .
+          poetry run black --check --exclude setup.py --exclude .venv .
 
       - name: Run flake8 linting check
         run: |
