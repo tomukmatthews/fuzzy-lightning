@@ -8,6 +8,7 @@ substring to length ratio.
 
 from __future__ import annotations
 
+import itertools as it
 from dataclasses import dataclass, field
 from functools import partial, singledispatchmethod
 from itertools import groupby
@@ -66,16 +67,17 @@ def tokenize_string_chars(string: str, ngram_range: Tuple[int, int]) -> List[str
     return tokens
 
 
-@dataclass(frozen=True)
-class EntityMatch:
+@dataclass
+class DocumentMatch:
     """Output from individual fuzzy matches."""
 
-    entity: str
-    confidence: float = field(default=0.0, metadata={"validator": "float_between_0_and_1"})
+    match: str
+    confidence: float
 
     def __post_init__(self):
+        self.confidence = round(self.confidence, 5)
         if not (0.0 <= self.confidence <= 1.0):
-            raise ValueError("confidence must be a float between 0 and 1")
+            raise ValueError(f"confidence was {self.confidence}, must be a float between 0 and 1")
 
 
 @dataclass
@@ -84,69 +86,39 @@ class FuzzyMatchConfig:
     Class with configuration variables for the FuzzyMatch algorithm.
 
     Attributes:
-        tfidf (TFIDFConfig): Configuration for the TF-IDF vectorizer.
-        lcs (LCSConfig): Configuration for the LCS algorithm.
-        threads (NearestNeighbourSearchConfig): Configuration for using threads.
+        n_gram_range (Tuple[int, int]): Range of lengths of n-grams to use with the TF-IDF vectorizer. For example,
+            n_gram_range = (2, 3) will use bi-grams and tri-grams.
+        min_document_freq (int, optional): Minimum number of documents a term must appear in to be considered.
+            Defaults to 1.
+        tfidf_similarity_threshold (float, optional): Minimum cosine similarity to a viable candidate for LCS.
+            Defaults to 0.1.
+        n_top_candidates (int, optional): Maximum number of candidates to return that exceed the
+            similarity_threshold. Defaults to 40.
+        lcs_min_characters (int): Minimum length of the string to qualify for matching to the target strings.
+        lcs_min_length_ratio (float): Minimum ratio of string length to target string length for an string <> target
+            string match to qualify.
+        lcs_similarity_threshold (float, optional): Minimum LCS match ratio to accept classification.
+        use_threads (bool): Whether to use threads to parallelise the work to find the n_top_candidates for each
+            string.
+        n_threads (int): Number of threads to use when finding the n_top_candidates. Increasing the number of threads
+            reduces the run time, but there becomes a trade off in production where there may be 'thread congestion'.
         string_preprocessor (Optional[Callable[[str], str]]): A callable that takes in a string and returns a processed
             string. This can be used to perform any preprocessing steps on the input strings before they are compared.
     """
 
-    @dataclass
-    class TFIDF:
-        """
-        Class with configuration variables for the TF-IDF vectorizer.
-
-        Attributes:
-            n_gram_range (Tuple[int, int]): Range of lengths of n-grams to use with the TF-IDF vectorizer. For example,
-                n_gram_range = (2, 3) will use bi-grams and tri-grams.
-            min_document_freq (int, optional): Minimum number of documents a term must appear in to be considered.
-                Defaults to 1.
-            similarity_threshold (float, optional): Minimum cosine similarity to a viable candidate for LCS.
-                Defaults to 0.1.
-            n_top_candidates (int, optional): Maximum number of candidates to return that exceed the
-                similarity_threshold. Defaults to 40.
-        """
-
-        n_gram_range: Tuple[int, int] = (2, 4)
-        min_document_freq: int = 1
-        similarity_threshold: float = 0.1
-        n_top_candidates: int = 40
-
-    @dataclass
-    class LCS:
-        """
-        Class with configuration variables for the LCS algorithm.
-
-        Attributes:
-            min_characters (int): Minimum length of the string to qualify for matching to the target strings.
-            min_length_ratio (float): Minimum ratio of string length to target string length for an string <> target
-                string match to qualify.
-            similarity_threshold (float, optional): Minimum LCS match ratio to accept classification.
-        """
-
-        min_characters: int = 4
-        min_length_ratio: float = 0.7
-        similarity_threshold: float = 0.8
-
-    @dataclass
-    class NNSearch:
-        """
-        Class with configuration variables for finding the nearest neighbour embedding vectors using cosine similarity.
-        You can experiment with using threading to optimise latency for your use case.
-
-        Attributes:
-            use_threads (bool): Whether to use threads to parallelise the work to find the n_top_candidates for each
-                string.
-            n_threads (int): Number of threads to use when finding the n_top_candidates. Increasing the number of threads
-                reduces the run time, but there becomes a trade off in production where there may be 'thread congestion'.
-        """
-
-        use_threads: bool = True
-        n_threads: int = 4
-
-    tfidf: TFIDF = field(default_factory=TFIDF)
-    lcs: LCS = field(default_factory=LCS)
-    nn_search: NNSearch = field(default_factory=NNSearch)
+    # tifidf config
+    n_gram_range: Tuple[int, int] = (2, 4)
+    min_document_freq: int = 1
+    tfidf_similarity_threshold: float = 0.1
+    n_top_candidates: int = 40
+    # lcs config
+    lcs_min_characters: int = 4
+    lcs_min_length_ratio: float = 0.7
+    lcs_similarity_threshold: float = 0.8
+    # nearest neighour search config
+    use_threads: bool = True
+    n_threads: int = 4
+    # preprocessing config
     string_preprocessor: Optional[Callable[[str], str]] = None
 
 
@@ -160,11 +132,11 @@ class FuzzyMatch:
         strings = ['Smart Piggie', 'the smartest energy']
         fuzzy_matcher.get_document_matches(strings=strings)
         >>> [
-                EntityMatch(entity='SMARTPIG', confidence=1.0),
-                EntityMatch(entity='SMARTEST ENERGY', confidence=1.0)
+                DocumentMatch(match='SMARTPIG', confidence=1.0),
+                DocumentMatch(match='SMARTEST ENERGY', confidence=1.0)
             ]
         fuzzy_matcher.get_lookup_match('SMART PIGGIE')
-        >>> EntityMatch(entity='SMARTPIG', confidence=1.0)
+        >>> DocumentMatch(match='SMARTPIG', confidence=1.0)
     """
 
     def __init__(
@@ -214,8 +186,8 @@ class FuzzyMatch:
         preprocessed_documents = self.apply_string_preprocessor(documents)
 
         self.vectorizer = TfidfVectorizer(
-            min_df=self.config.tfidf.min_document_freq,
-            analyzer=partial(tokenize_string_chars, ngram_range=self.config.tfidf.n_gram_range),
+            min_df=self.config.min_document_freq,
+            analyzer=partial(tokenize_string_chars, ngram_range=self.config.n_gram_range),
             lowercase=False,
             dtype=np.float32,
             norm='l2',
@@ -224,84 +196,61 @@ class FuzzyMatch:
         self.vectorizer.fit(preprocessed_documents)
         self.document_vectors = self.vectorizer.transform(preprocessed_documents)
 
-    def get_document_matches(self, strings: List[str]) -> List[EntityMatch]:
+    def get_document_matches(self, strings: List[str], prune_with_lcs: bool = True) -> List[Optional[DocumentMatch]]:
         """
         For a series of strings, find the closest match in the lookup specified along with the match confidence.
         Args:
-            strings (pd.Series): Strings to match, the index of the series is used as an identifier when returning the
-                                match results.
-            lookup_name (str): Name of the lookup to search for entity matches in.
+            strings (List[str]): Strings to match.
+            # TODO: DOC and below func
         Returns:
-            List[EntityMatch]: Id and fuzzy match (entity and confidence).
+            List[DocumentMatch]: Fuzzy matches (match and confidence).
         """
         if not strings:
             return []
 
         embedding_vectors = self.vectorizer.transform(self.apply_string_preprocessor(strings))
-        match_candidates = self._get_match_candidates(embedding_vectors=embedding_vectors)
-        match_results = self._get_lcs_matches(match_candidates=match_candidates, strings=strings)
-        return match_results
+        str_similarity_matrix = self.get_string_similarity_matrix(embedding_vectors=embedding_vectors)
+        if str_similarity_matrix.nnz == 0:
+            # No matches
+            return list(it.repeat(None, len(strings)))
 
-    def get_document_match(self, string: str) -> Optional[EntityMatch]:
+        if prune_with_lcs:
+            return self._get_lcs_matches(str_similarity_matrix=str_similarity_matrix, strings=strings)
+        else:
+            matches = self._get_tfidf_matches(str_similarity_matrix)
+            return matches
+
+    def get_document_match(self, string: str, prune_with_lcs: bool = True) -> Optional[DocumentMatch]:
         """
         Find the closest match in the lookup specified along with the match confidence.
 
         Args:
             string (str): String to match.
-            lookup_name (str): Name of the lookup to search for entity matches in.
+            prune_with_lcs (bool): Whether to use LCS (match ratio) confidence instead of default TFIDF
+            (cosine similarity).
         Returns:
-            EntityMatch: Fuzzy match (entity and confidence).
+            Optional[DocumentMatch]: Fuzzy match (match and confidence).
         """
         embedding_vectors = self.vectorizer.transform([self.apply_string_preprocessor(string)])
-        match_candidates = self._get_match_candidates(embedding_vectors=embedding_vectors)
-        return self._get_lcs_matches(match_candidates=match_candidates, strings=[string])[0]
+        str_similarity_matrix = self.get_string_similarity_matrix(embedding_vectors=embedding_vectors)
 
-    def _get_lcs_best_match(self, string: str, entity_matches: List[str]) -> Optional[EntityMatch]:
-        """Selects the best match from a set of candidates using the highest match ratio of longest common substring to
-            string length.
+        if str_similarity_matrix.nnz == 0:
+            # No matches
+            return None
 
-        Args:
-            string (str): String to find best LCS match for.
-            entity_matches (List[str]): The entity match candidates identified from the TF-IDF top nearest neighbours to
-                                        the string.
-        Returns:
-            Optional[EntityMatch]: Fuzzy match (entity and confidence).
-        """
-        best_match_idx, confidence = lcs.get_lcs_best_match_idx(
-            preprocessed_str=self.apply_string_preprocessor(string),
-            preprocessed_entity_matches=self.apply_string_preprocessor(entity_matches),
-            min_characters=self.config.lcs.min_characters,
-            min_length_ratio=self.config.lcs.min_length_ratio,
-        )
+        row_matches = str_similarity_matrix.getrow(0)
+        document_matches = [self.documents[doc_idx] for doc_idx in row_matches.indices]
 
-        # best_match_idx of -1 indicates no valid matches found.
-        if confidence >= self.config.lcs.similarity_threshold and best_match_idx != -1:
-            return EntityMatch(entity=entity_matches[best_match_idx], confidence=confidence)
+        if prune_with_lcs:
+            return self._get_lcs_best_match(string=string, document_matches=document_matches)
+        else:
+            max_conf_doc_idx = row_matches.data.argmax()
+            match = document_matches[max_conf_doc_idx]
+            confidence = row_matches.data[max_conf_doc_idx]
+            if confidence >= self.config.tfidf_similarity_threshold:
+                return DocumentMatch(match=match, confidence=confidence)
 
-    def _get_lcs_matches(self, match_candidates: csr_matrix, strings: List[str]) -> List[Optional[EntityMatch]]:
-        """Prunes the match candidates using LCS to identify the best match for each string.
-        Args:
-            match_candidates (csr_matrix): Coordinate format sparse matrix, match candidates ~ (data, (row, col)).
-                                    The row and col are the row and column position of the value in the matrix, data
-                                    represents the numerical value at that point. The match candidates is ordered from
-                                    best match to worst match for each successive string.
-            strings (List[str]): Strings to match.
-
-        Returns:
-            List[Optional[EntityMatch]]: Fuzzy matches (entity and confidence).
-        """
-        lcs_best_matches = {}
-        # Assumes match_candidates.row is ordered - it's a pre-requisite of itertools.groupby.
-        for string_idx, document_idxs in groupby(zip(match_candidates.row, match_candidates.col), key=lambda x: x[0]):
-            string = strings[string_idx]
-            matches = [self.documents[document_idx] for _, document_idx in document_idxs]
-            if match := self._get_lcs_best_match(string=string, entity_matches=matches):
-                lcs_best_matches[string] = match
-
-        # match_candidates might not contain all strings, so we need to return a list of EntityMatch in the same order
-        return [lcs_best_matches.get(string) for string in strings]
-
-    def _get_match_candidates(self, embedding_vectors: csr_matrix) -> csr_matrix:
+    def get_string_similarity_matrix(self, embedding_vectors: csr_matrix) -> csr_matrix:
         """
         Finds the top N nearest neighbours in the matrices of document-vectors using cosine similarity (ordered from
         best match to worst).
@@ -313,7 +262,7 @@ class FuzzyMatch:
             embedding_vectors (csr_matrix): Sparse matrix of TF-IDF vectors for each string to match.
         Returns:
             csr_matrix: Of the form (row, column) value. Where the row is the index of the string, the column is
-                        the index of the matched entity, and the value is the cosine similarity between the two
+                        the index of the matched match, and the value is the cosine similarity between the two
                         vectors.
         Example:
             (0, 0)	0.2
@@ -326,13 +275,87 @@ class FuzzyMatch:
             (2, 40)	0.05
             ...
         """
-        match_candidates = get_topn_nearest_neighbours(
+        str_similarity_matrix = get_topn_nearest_neighbours(
             embedding_vectors,
             self.document_vectors.transpose(),
-            ntop=self.config.tfidf.n_top_candidates,
-            use_threads=self.config.nn_search.use_threads,
-            n_jobs=self.config.nn_search.n_threads,
-            lower_bound=self.config.tfidf.similarity_threshold,
+            ntop=self.config.n_top_candidates,
+            use_threads=self.config.use_threads,
+            n_jobs=self.config.n_threads,
+            lower_bound=self.config.tfidf_similarity_threshold,
             return_best_ntop=True,
         )[0].tocoo()
-        return match_candidates
+        return str_similarity_matrix
+
+    def _get_tfidf_matches(self, str_similarity_matrix: csr_matrix) -> List[Optional[DocumentMatch]]:
+        """Get DocumentMatch objects for each string from the str_similarity_matrix - of cosine similarity scores.
+
+        Args:
+            str_similarity_matrix (csr_matrix): Of the form (row, column) value. Where the row is the index of the
+                string, the column is the index of the matched match, and the value is the cosine similarity between the
+                two vectors.
+
+        Returns:
+            List[DocumentMatch]: Fuzzy matches (match and confidence).
+        """
+        idxs_present_in_csr = set(str_similarity_matrix.row.tolist())
+        matches = []
+        # convert to csr so we can index the matrix
+        str_similarity_matrix = str_similarity_matrix.tocsr()
+        for str_idx, doc_idx in enumerate(str_similarity_matrix.argmax(axis=1).tolist()):
+            doc_idx = doc_idx[0]
+            if str_idx in idxs_present_in_csr:
+                # Result of argmax gives the idx=0 document, even if the string idx is not present in the
+                # str_similarity_matrix matrix, so we need to filter out those cases.
+                match = DocumentMatch(match=self.documents[doc_idx], confidence=str_similarity_matrix[str_idx, doc_idx])
+            else:
+                match = None
+            matches.append(match)
+        return matches
+
+    def _get_lcs_best_match(self, string: str, document_matches: List[str]) -> Optional[DocumentMatch]:
+        """Selects the best match from a set of candidates using the highest match ratio of longest common substring to
+            string length.
+
+        Args:
+            string (str): String to find best LCS match for.
+            document_matches (List[str]): The document match candidates identified from the TF-IDF top nearest neighbours to
+                                        the string.
+        Returns:
+            Optional[DocumentMatch]: Fuzzy match (match and confidence).
+        """
+        best_match_idx, confidence = lcs.get_lcs_best_match_idx(
+            preprocessed_str=self.apply_string_preprocessor(string),
+            preprocessed_document_matches=self.apply_string_preprocessor(document_matches),
+            min_characters=self.config.lcs_min_characters,
+            min_length_ratio=self.config.lcs_min_length_ratio,
+        )
+
+        # best_match_idx of -1 indicates no valid matches found.
+        if confidence >= self.config.lcs_similarity_threshold and best_match_idx != -1:
+            return DocumentMatch(match=document_matches[best_match_idx], confidence=confidence)
+
+    def _get_lcs_matches(self, str_similarity_matrix: csr_matrix, strings: List[str]) -> List[Optional[DocumentMatch]]:
+        """Prunes the match candidates using LCS to identify the best match for each string.
+        Args:
+            str_similarity_matrix (csr_matrix): Coordinate format sparse matrix, match candidates ~ (data, (row, col)).
+                                    The row and col are the row and column position of the value in the matrix, data
+                                    represents the numerical value at that point. The match candidates is ordered from
+                                    best match to worst match for each successive string.
+            strings (List[str]): Strings to match.
+
+        Returns:
+            List[Optional[DocumentMatch]]: Fuzzy matches (match and confidence).
+        """
+        lcs_best_matches = {}
+        # Assumes str_similarity_matrix.row is ordered - it's a pre-requisite of itertools.groupby.
+        for string_idx, document_idxs in groupby(
+            zip(str_similarity_matrix.row, str_similarity_matrix.col), key=lambda x: x[0]
+        ):
+            string = strings[string_idx]
+            matches = [self.documents[document_idx] for _, document_idx in document_idxs]
+            if match := self._get_lcs_best_match(string=string, document_matches=matches):
+                lcs_best_matches[string] = match
+
+        # str_similarity_matrix might not contain all strings, so we need to return a list of DocumentMatch in the
+        # same order
+        return [lcs_best_matches.get(string) for string in strings]
