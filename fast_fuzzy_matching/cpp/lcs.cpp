@@ -72,26 +72,26 @@ std::vector<int> longest_common_substring_lengths(const u32string &str, const ve
  * Identifies match candidates which don't qualify for consideration in longest common substring.
  *
  * @param preprocessed_str: a Unicode string in UTF-32 encoding after being preprocessed.
- * @param preprocessed_entity_match: a Unicode string in UTF-32 encoding after being preprocessed, to be compared with
+ * @param preprocessed_document_match: a Unicode string in UTF-32 encoding after being preprocessed, to be compared with
  * preprocessed_str.
  * @param min_characters: the minimum number of characters that the strings must have in common to be considered a valid
  * match.
- * @param min_length_ratio: the minimum ratio of the length of the preprocessed_entity_match to the length of
+ * @param min_length_ratio: the minimum ratio of the length of the preprocessed_document_match to the length of
  * preprocessed_str that must be satisfied for the match to be considered valid.
  *
- * @return: true if the preprocessed_entity_match is a valid match for preprocessed_str, or false otherwise.
+ * @return: true if the preprocessed_document_match is a valid match for preprocessed_str, or false otherwise.
  */
-bool is_valid_entity_match(const u32string &preprocessed_str,
-                           const u32string &preprocessed_entity_match,
-                           const int min_characters,
-                           const float min_length_ratio)
+bool is_valid_document_match(const u32string &preprocessed_str,
+                             const u32string &preprocessed_document_match,
+                             const int min_characters,
+                             const float min_length_ratio)
 {
     // Identifies match candidates which don't qualify for consideration in longest common substring.
 
-    if (preprocessed_entity_match.length() > preprocessed_str.length())
+    if (preprocessed_document_match.length() > preprocessed_str.length())
     {
-        size_t min_length = max((int)(preprocessed_entity_match.length() * min_length_ratio), min_characters);
-        bool no_substring_match = preprocessed_str.substr(0, min_length) != preprocessed_entity_match.substr(0, min_length);
+        size_t min_length = max((int)(preprocessed_document_match.length() * min_length_ratio), min_characters);
+        bool no_substring_match = preprocessed_str.substr(0, min_length) != preprocessed_document_match.substr(0, min_length);
 
         if (preprocessed_str.length() < min_length || no_substring_match)
         {
@@ -106,17 +106,17 @@ bool is_valid_entity_match(const u32string &preprocessed_str,
  * string length.
  *
  * @param preprocessed_str: A Unicode string that has been preprocessed to remove unwanted characters.
- * @param preprocessed_entity_matches: A vector of Unicode strings that have been preprocessed to remove unwanted
+ * @param preprocessed_document_matches: A vector of Unicode strings that have been preprocessed to remove unwanted
  * characters.
  * @param min_characters: The minimum number of characters that a match must have to be considered valid.
  * @param min_length_ratio: The minimum ratio of length of the longest common substring to the length of the shortest
  * string that a match must have to be considered valid.
  *
- * @return: A tuple containing the index of the best match in preprocessed_entity_matches, and the ratio of the longest
+ * @return: A tuple containing the index of the best match in preprocessed_document_matches, and the ratio of the longest
  * common substring to the length of the shortest string.
  */
 tuple<int, float> get_lcs_best_match_idx(const u32string &preprocessed_str,
-                                         const vector<u32string> &preprocessed_entity_matches,
+                                         const vector<u32string> &preprocessed_document_matches,
                                          const int min_characters,
                                          const float min_length_ratio)
 {
@@ -126,15 +126,15 @@ tuple<int, float> get_lcs_best_match_idx(const u32string &preprocessed_str,
     // Use -1 index to denote no valid matches.
     int best_match_idx = -1;
     float best_match_ratio = 0.0;
-    for (size_t i = 0; i < preprocessed_entity_matches.size(); i++)
+    for (size_t i = 0; i < preprocessed_document_matches.size(); i++)
     {
-        if (is_valid_entity_match(preprocessed_str,
-                                  preprocessed_entity_matches[i],
-                                  min_characters,
-                                  min_length_ratio))
+        if (is_valid_document_match(preprocessed_str,
+                                    preprocessed_document_matches[i],
+                                    min_characters,
+                                    min_length_ratio))
         {
-            int shortest_str_len = min(preprocessed_str.length(), preprocessed_entity_matches[i].length());
-            float match_ratio = longest_common_substring_length(preprocessed_str, preprocessed_entity_matches[i]) / (float)shortest_str_len;
+            int shortest_str_len = min(preprocessed_str.length(), preprocessed_document_matches[i].length());
+            float match_ratio = longest_common_substring_length(preprocessed_str, preprocessed_document_matches[i]) / (float)shortest_str_len;
 
             if (match_ratio > best_match_ratio)
             {
@@ -155,13 +155,13 @@ PYBIND11_MODULE(lcs, m)
                     A function to find the length of the longest substring between a string and a list of strings.
         )pbdoc");
     m.def("get_lcs_best_match_idx", &get_lcs_best_match_idx, R"pbdoc(
-                        A function to find the best match between a str and a set of entity matches.
+                        A function to find the best match between a str and a set of document matches.
             )pbdoc",
-          py::arg("preprocessed_str"), py::arg("preprocessed_entity_matches"), py::arg("min_characters"),
+          py::arg("preprocessed_str"), py::arg("preprocessed_document_matches"), py::arg("min_characters"),
           py::arg("min_length_ratio"));
-    m.def("is_valid_entity_match", &is_valid_entity_match, R"pbdoc(
-                        A function to determine if a candidate entity match is valid (exposing this for testing only!).
+    m.def("is_valid_document_match", &is_valid_document_match, R"pbdoc(
+                        A function to determine if a candidate document match is valid (exposing this for testing only!).
             )pbdoc",
-          py::arg("preprocessed_str"), py::arg("preprocessed_entity_match"), py::arg("min_characters"),
+          py::arg("preprocessed_str"), py::arg("preprocessed_document_match"), py::arg("min_characters"),
           py::arg("min_length_ratio"));
 }

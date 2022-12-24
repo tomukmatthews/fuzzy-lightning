@@ -6,7 +6,7 @@ from scipy.sparse import csr_matrix
 from sklearn.utils.validation import check_is_fitted
 
 import lcs
-from fast_fuzzy_matching.fuzzy_match import EntityMatch, FuzzyMatch, FuzzyMatchConfig
+from fast_fuzzy_matching.fuzzy_match import DocumentMatch, FuzzyMatch, FuzzyMatchConfig
 
 
 @pytest.fixture(scope='module')
@@ -87,7 +87,7 @@ def test_vectorizer_text_processor_applied():
 
     fm = FuzzyMatch(
         documents=['CAT'],
-        config=FuzzyMatchConfig(FuzzyMatchConfig.TFIDF(n_gram_range=(2, 3)), string_preprocessor=text_preprocessor),
+        config=FuzzyMatchConfig(n_gram_range=(2, 3), string_preprocessor=text_preprocessor),
     )
 
     vocab = set(fm.vectorizer.vocabulary_.keys())
@@ -103,17 +103,17 @@ def test_get_document_matches(fuzzy_matcher):
     strings = ['strawberrry', 'kiwi', 'gooseberru']
     output_matches = fuzzy_matcher.get_document_matches(strings)
     expected_output = [
-        EntityMatch('strawberry', 0.900),
-        EntityMatch('kiwi', 1.0),
-        EntityMatch('gooseberry', 0.900),
+        DocumentMatch('strawberry', 0.900),
+        DocumentMatch('kiwi', 1.0),
+        DocumentMatch('gooseberry', 0.900),
     ]
 
-    assert expected_output[0].entity == output_matches[0].entity
+    assert expected_output[0].match == output_matches[0].match
     assert expected_output[0].confidence == pytest.approx(expected=output_matches[0].confidence, abs=1e-3)
 
     assert expected_output[1] == output_matches[1]
 
-    assert expected_output[2].entity == output_matches[2].entity
+    assert expected_output[2].match == output_matches[2].match
     assert expected_output[2].confidence == pytest.approx(expected=output_matches[2].confidence, abs=1e-3)
 
 
@@ -130,7 +130,7 @@ def test_get_document_matches_empty_list(fuzzy_matcher):
     assert output_matches == []
 
 
-def test_document_vectors_maps_to_entity_in_range(fuzzy_matcher):
+def test_document_vectors_maps_to_document_in_range(fuzzy_matcher):
     """The column index from the document vectors generated should always be in the valid index range of the
     entities.
     """
@@ -139,15 +139,14 @@ def test_document_vectors_maps_to_entity_in_range(fuzzy_matcher):
     assert max(matrix.tocoo().row) <= len(entities)
 
 
-def test_get_document_match(fuzzy_matcher):
+@pytest.mark.parametrize('prune_with_lcs', [True, False])
+def test_get_document_match(fuzzy_matcher, prune_with_lcs):
     """Should return the fuzzy match response for the string."""
-    match = fuzzy_matcher.get_document_match(string='pineapplee')
-    expected_match = EntityMatch('pineapple', 1.0)
+    match = fuzzy_matcher.get_document_match(string='pineapplee', prune_with_lcs=prune_with_lcs)
+    expected_match = DocumentMatch('pineapple', 1.0)
 
-    assert expected_match.entity == match.entity
-    assert expected_match.confidence == pytest.approx(expected=match.confidence, abs=1e-3)
-
-    assert match == expected_match
+    assert expected_match.match == match.match
+    assert expected_match.confidence == pytest.approx(expected=match.confidence, abs=0.1)
 
 
 def test_get_document_match_empty_string(fuzzy_matcher):
@@ -178,34 +177,34 @@ def test_get_lcs_matches():
     row = np.array([0, 0, 0, 1, 2, 2, 2, 2])
     col = np.array([0, 1, 2, 3, 4, 5, 6, 7])
     data = np.array([0.2, 0.4, 0.5, 0.3, 0.55, 0.2, 0.1, 0.05])
-    match_candidates = csr_matrix((data, (row, col))).tocoo()
+    str_similarity_matrix = csr_matrix((data, (row, col))).tocoo()
 
-    output = fm._get_lcs_matches(match_candidates=match_candidates, strings=strings)
+    output = fm._get_lcs_matches(str_similarity_matrix=str_similarity_matrix, strings=strings)
     expected_output = [
-        EntityMatch('AA MEMBERSHIP', 1.0),
-        EntityMatch('O2 ACADEMY', 1.0),
-        EntityMatch('SAMSUNG', 1.0),
+        DocumentMatch('AA MEMBERSHIP', 1.0),
+        DocumentMatch('O2 ACADEMY', 1.0),
+        DocumentMatch('SAMSUNG', 1.0),
     ]
 
     assert output == expected_output
 
 
-def test_is_valid_entity_match_entity_too_long():
-    """Invalid match candidates should be removed here because of the entity name being longer than the
+def test_is_valid_document_match_too_long():
+    """Invalid match candidates should be removed here because of the match name being longer than the
     string.
     """
     string = 'NANDOS SOUTHGATE'
-    matches = ['NANDOS', 'NANDY PP', 'ANDOSERRA', 'NANDOS BUT TOO LONG ENTITY']
+    matches = ['NANDOS', 'NANDY PP', 'ANDOSERRA', 'NANDOS BUT TOO LONG MATCH']
     no_space_matches = [match.replace(' ', '') for match in matches]
 
     config = FuzzyMatchConfig()
 
     output = [
-        lcs.is_valid_entity_match(
+        lcs.is_valid_document_match(
             preprocessed_str=string.replace(' ', ''),
-            preprocessed_entity_match=no_space_match,
-            min_characters=config.lcs.min_characters,
-            min_length_ratio=config.lcs.min_length_ratio,
+            preprocessed_document_match=no_space_match,
+            min_characters=config.lcs_min_characters,
+            min_length_ratio=config.lcs_min_length_ratio,
         )
         for no_space_match in no_space_matches
     ]
@@ -215,7 +214,7 @@ def test_is_valid_entity_match_entity_too_long():
     assert output == expected_output
 
 
-def test_is_valid_entity_match_string_too_short():
+def test_is_valid_document_match_string_too_short():
     """All match candidates should be removed - none are valid because the string is too short to be qualify
     for LCS.
     """
@@ -226,11 +225,11 @@ def test_is_valid_entity_match_string_too_short():
     config = FuzzyMatchConfig()
 
     output = [
-        lcs.is_valid_entity_match(
+        lcs.is_valid_document_match(
             preprocessed_str=string.replace(' ', ''),
-            preprocessed_entity_match=no_space_match,
-            min_characters=config.lcs.min_characters,
-            min_length_ratio=config.lcs.min_length_ratio,
+            preprocessed_document_match=no_space_match,
+            min_characters=config.lcs_min_characters,
+            min_length_ratio=config.lcs_min_length_ratio,
         )
         for no_space_match in no_space_matches
     ]
@@ -240,7 +239,7 @@ def test_is_valid_entity_match_string_too_short():
     assert output == expected_output
 
 
-def test_is_valid_entity_match_string_long_enough():
+def test_is_valid_document_match_string_long_enough():
     """All match candidates should be kept - all are valid because the string is long enough to be qualify
     for LCS.
     """
@@ -248,35 +247,35 @@ def test_is_valid_entity_match_string_long_enough():
     matches = ['NANDOS', 'NANDY PP']
     no_space_matches = [match.replace(' ', '') for match in matches]
 
-    config = FuzzyMatchConfig(lcs=FuzzyMatchConfig.LCS(min_characters=4))
+    config = FuzzyMatchConfig(lcs_min_characters=4)
     output = [
-        lcs.is_valid_entity_match(
+        lcs.is_valid_document_match(
             preprocessed_str=string.replace(' ', ''),
-            preprocessed_entity_match=no_space_match,
-            min_characters=config.lcs.min_characters,
-            min_length_ratio=config.lcs.min_length_ratio,
+            preprocessed_document_match=no_space_match,
+            min_characters=config.lcs_min_characters,
+            min_length_ratio=config.lcs_min_length_ratio,
         )
         for no_space_match in no_space_matches
     ]
     assert all(output)
 
 
-def test_is_valid_entity_match_no_substring_match():
+def test_is_valid_document_match_no_substring_match():
     """In all these cases the string is shorter than the match candidates so we have to verify that in
     each case the string at least the beginning of the strings match up to the minimum length.
     """
     matches = ['NANSOD', 'NANDY PP', 'NANDOS']
     no_space_matches = [match.replace(' ', '') for match in matches]
-    config = FuzzyMatchConfig(lcs=FuzzyMatchConfig.LCS(min_characters=4))
+    config = FuzzyMatchConfig(lcs_min_characters=4)
 
     string1 = 'NANDO'
 
     output1 = [
-        lcs.is_valid_entity_match(
+        lcs.is_valid_document_match(
             preprocessed_str=string1.replace(' ', ''),
-            preprocessed_entity_match=no_space_match,
-            min_characters=config.lcs.min_characters,
-            min_length_ratio=config.lcs.min_length_ratio,
+            preprocessed_document_match=no_space_match,
+            min_characters=config.lcs_min_characters,
+            min_length_ratio=config.lcs_min_length_ratio,
         )
         for no_space_match in no_space_matches
     ]
@@ -285,11 +284,11 @@ def test_is_valid_entity_match_no_substring_match():
 
     string2 = 'NAND'
     output2 = [
-        lcs.is_valid_entity_match(
+        lcs.is_valid_document_match(
             preprocessed_str=string2.replace(' ', ''),
-            preprocessed_entity_match=no_space_match,
-            min_characters=config.lcs.min_characters,
-            min_length_ratio=config.lcs.min_length_ratio,
+            preprocessed_document_match=no_space_match,
+            min_characters=config.lcs_min_characters,
+            min_length_ratio=config.lcs_min_length_ratio,
         )
         for no_space_match in no_space_matches
     ]
