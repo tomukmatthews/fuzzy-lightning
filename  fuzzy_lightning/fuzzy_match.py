@@ -14,12 +14,11 @@ from functools import partial, singledispatchmethod
 from itertools import groupby
 from typing import Callable, List, Optional, Tuple
 
+import lcs
 import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sparse_dot_topn import awesome_cossim_topn as get_topn_nearest_neighbours
-
-import lcs
 
 
 def get_ngrams(string: str, n: int, pad: bool = True) -> List[str]:

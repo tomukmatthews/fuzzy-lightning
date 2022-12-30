@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
+from setuptools import find_packages, setup
 
-packages = ['fast_fuzzy_matching']
+packages = ['fuzzy_lightning']
 
-package_data = {'': ['*'], 'fast_fuzzy_matching': ['cpp/*']}
+package_data = {'': ['*'], 'fuzzy_lightning': ['cpp/*']}
 
 install_requires = [
     'pandas>=1.5.2,<2.0.0',
@@ -15,10 +15,10 @@ install_requires = [
 ]
 
 setup_kwargs = {
-    'name': 'fast-fuzzy-matching',
+    'name': 'fuzzy-lightning',
     'version': '0.1.0',
     'description': 'Perform fast approximate string matching.',
-    'long_description': '# fast-fuzzy-matching\nFast approximate string matching.\n',
+    'long_description': '# fuzzy-lightning\nFast approximate string matching.\n',
     'author': 'Tom Matthews',
     'author_email': 'tomukmatthews@gmail.com',
     'maintainer': 'None',
