@@ -1,11 +1,12 @@
 """Test fuzzy match."""
 
-import lcs
 import numpy as np
 import pytest
-from fuzzy_lightning.fuzzy_match import DocumentMatch, FuzzyMatch, FuzzyMatchConfig
 from scipy.sparse import csr_matrix
 from sklearn.utils.validation import check_is_fitted
+
+import lcs
+from fuzzy_lightning.fuzzy_match import DocumentMatch, FuzzyMatch, FuzzyMatchConfig
 
 
 @pytest.fixture(scope='module')
