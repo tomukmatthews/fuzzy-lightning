@@ -1,2 +1,2 @@
-# fast-fuzzy-matching
+# fuzzy-lightning
 Fast approximate string matching.
