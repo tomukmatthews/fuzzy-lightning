@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
-packages = ['fast_fuzzy_matching']
+packages = ['fuzzy_lightning']
 
-package_data = {'': ['*'], 'fast_fuzzy_matching': ['cpp/*']}
+package_data = {'': ['*'], 'fuzzy_lightning': ['cpp/*']}
 
 install_requires = [
-    'pandas>=1.5.2,<2.0.0',
     'pybind11>=2.10.1,<3.0.0',
     'scikit-learn>=1.1.3,<2.0.0',
     'scipy>=1.9.3,<2.0.0',
@@ -15,10 +14,10 @@ install_requires = [
 ]
 
 setup_kwargs = {
-    'name': 'fast-fuzzy-matching',
+    'name': 'fuzzy-lightning',
     'version': '0.1.0',
     'description': 'Perform fast approximate string matching.',
-    'long_description': '# fast-fuzzy-matching\nFast approximate string matching.\n',
+    'long_description': '#fuzzy-lightning\nFast approximate string matching.\n',
     'author': 'Tom Matthews',
     'author_email': 'tomukmatthews@gmail.com',
     'maintainer': 'None',
@@ -27,9 +26,9 @@ setup_kwargs = {
     'packages': packages,
     'package_data': package_data,
     'install_requires': install_requires,
-    'python_requires': '>=3.10.7',
+    'python_requires': '>=3.9.14,<4.0.0',
 }
-from build import *
+from build import build
 
 build(setup_kwargs)
 
