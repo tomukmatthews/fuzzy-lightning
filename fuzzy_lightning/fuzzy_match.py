@@ -1,5 +1,5 @@
 """
-Fuzzy matching strings to target strings (entities).
+Fuzzy matching strings to target strings (document matches).
 Converts strings to vectors using sklearn TF-IDF vectorizers on character n-grams. The generates a shortlist of match
 candidates from the top N nearest neighbours (cosine similarity) of dictionary key vectors for each string (ordered
 from best match to worst). This list of candidates is then pruned to select the best match using the longest common
@@ -9,7 +9,7 @@ substring to length ratio.
 from __future__ import annotations
 
 import itertools as it
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial, singledispatchmethod
 from itertools import groupby
 from typing import Callable, List, Optional, Tuple
@@ -201,7 +201,8 @@ class FuzzyMatch:
         For a series of strings, find the closest match in the lookup specified along with the match confidence.
         Args:
             strings (List[str]): Strings to match.
-            # TODO: DOC and below func
+            prune_with_lcs (bool): Whether to use LCS (match ratio) confidence instead of default TFIDF
+            (cosine similarity).
         Returns:
             List[DocumentMatch]: Fuzzy matches (match and confidence).
         """

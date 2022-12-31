@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from setuptools import setup
+from setuptools import find_packages, setup
 
 packages = ['fuzzy_lightning']
 
@@ -26,7 +26,7 @@ setup_kwargs = {
     'packages': packages,
     'package_data': package_data,
     'install_requires': install_requires,
-    'python_requires': '>=3.9.14,<4.0.0',
+    'python_requires': '>=3.9.1,<4.0.0',
 }
 from build import build
 
