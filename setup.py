@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 packages = ['fuzzy_lightning']
 
 package_data = {'': ['*'], 'fuzzy_lightning': ['cpp/*']}
@@ -14,9 +17,10 @@ install_requires = [
 
 setup_kwargs = {
     'name': 'fuzzy-lightning',
-    'version': '0.1.3',
-    'description': 'Perform fast approximate string matching.',
-    'long_description': '#fuzzy-lightning\nFast approximate string matching.\n',
+    'version': '0.1.5',
+    'description': 'Perform fast fuzzy string lookups.',
+    'long_description': long_description,
+    'long_description_content_type': 'text/markdown',
     'author': 'Tom Matthews',
     'author_email': 'tomukmatthews@gmail.com',
     'maintainer': 'Tom Matthews',

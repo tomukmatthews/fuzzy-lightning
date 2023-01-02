@@ -37,6 +37,8 @@ print(match)
 >>> DocumentMatch(match='SMARTPIG', confidence=1.0)
 ```
 
+### Configuration
+
 The FuzzyMatch class has a number of configurable parameters that you can set using the `FuzzyMatchConfig` class. 
 
 - **n_gram_range** (Tuple[int, int]): Range of lengths of n-grams to use with the TF-IDF vectorizer. For example,
@@ -69,6 +71,30 @@ def preprocessor(string: str) -> str:
 
 config = FuzzyMatchConfig(n_gram_range=(1, 2), string_preprocessor=preprocessor)
 fuzzy_matcher = FuzzyMatch(documents=documents, config=config)
+```
+
+## Longest Common Substring
+
+Finds the longest substring that is common to two strings. It is used to calculate the confidence of the fuzzy match.
+
+```
+from fuzzy_lightning import lcs
+lcs.longest_common_substring_length('beersteinbeer', 'stein')
+>>> 5
+```
+
+## Edit Distance Algorithms
+
+### Damerau-Levenshtein
+
+The Damerau-Levenshtein algorithm is a string edit distance algorithm calculates the minimum number of operations (insertions, deletions, substitutions, and transpositions) required to transform one string into another. Basically Levenshtein but also
+allow for transpositions.
+
+```
+from fuzzy_lightning import edit_distance as ed
+dist = ed.damerau_levenshtein('my nam is spetl wrrong', 'my name is spelt wrong')
+print(dist)
+>>> 3
 ```
 
 ## Appendix
