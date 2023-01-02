@@ -58,12 +58,16 @@ use_threads** (bool): Whether to use threads to parallelise the work to find the
 - **string_preprocessor** (Optional[Callable[[str], str]]): A callable that takes in a string and returns a processed
     string. This can be used to perform any preprocessing steps on the input strings before they are compared.
 
-For example, to change the range of n-grams used by the TF-IDF vectorizer, you can do the following:
+For example, to change the range of n-grams used by the TF-IDF vectorizer, and to add some string preprocessing prior
+to the fuzzy matching you can do the following:
 
 ```
-from fuzzy_match import FuzzyMatch, FuzzyMatchConfig
+from fuzzy_lightning import FuzzyMatch, FuzzyMatchConfig
 
-config = FuzzyMatchConfig(n_gram_range=(1, 2))
+def preprocessor(string: str) -> str:
+    return string.lower().replace(" ", "")
+
+config = FuzzyMatchConfig(n_gram_range=(1, 2), string_preprocessor=preprocessor)
 fuzzy_matcher = FuzzyMatch(documents=documents, config=config)
 ```
 
