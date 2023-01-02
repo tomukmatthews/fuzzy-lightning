@@ -14,7 +14,7 @@ install_requires = [
 
 setup_kwargs = {
     'name': 'fuzzy-lightning',
-    'version': '0.1.2',
+    'version': '0.1.3',
     'description': 'Perform fast approximate string matching.',
     'long_description': '#fuzzy-lightning\nFast approximate string matching.\n',
     'author': 'Tom Matthews',
