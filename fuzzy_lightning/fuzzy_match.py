@@ -1,5 +1,5 @@
 """
-Fuzzy matching strings to target strings (entities).
+Fuzzy matching strings to target strings (document matches).
 Converts strings to vectors using sklearn TF-IDF vectorizers on character n-grams. The generates a shortlist of match
 candidates from the top N nearest neighbours (cosine similarity) of dictionary key vectors for each string (ordered
 from best match to worst). This list of candidates is then pruned to select the best match using the longest common
@@ -9,7 +9,7 @@ substring to length ratio.
 from __future__ import annotations
 
 import itertools as it
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial, singledispatchmethod
 from itertools import groupby
 from typing import Callable, List, Optional, Tuple
@@ -20,51 +20,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sparse_dot_topn import awesome_cossim_topn as get_topn_nearest_neighbours
 
 import lcs
-
-
-def get_ngrams(string: str, n: int, pad: bool = True) -> List[str]:
-    """Get all substrings of length n in the string.
-
-    Args:
-        string (str): String to get ngrams from.
-        n (int): Length of ngram.
-        pad (bool): Whether to pad the beginning and end of the string with '-'.
-
-    Returns:
-        List[str]: All ngrams extracted from the string.
-
-    Example:
-        get_ngrams('ABCD', 2) = ['AB', 'BC', 'CD']
-    """
-    if pad:
-        string = '-' + string + '-'
-    return [string[i : i + n] for i in range(len(string) - n + 1)]
-
-
-def tokenize_string_chars(string: str, ngram_range: Tuple[int, int]) -> List[str]:
-    """Partition strings up into a list of character ngrams. You can pass a function that transforms (e.g. removes
-    spaces and uppercases) through the text_preprocessor argument.
-
-    Args:
-        string (str): String to tokenize.
-        ngram_range (Tuple[int, int]): Minimum and maximum number of characters to split the string into.
-
-    Returns:
-        List[str]: Character ngrams.
-
-    Example:
-        tokenize_string_chars('ABCD', (2, 4)) = ['-A', 'AB', 'BC', 'CD', 'D-', '-AB', 'ABC', 'BCD', 'CD-', '-ABC',
-                                                'ABCD', 'BCD-']
-    """
-    tokens = []
-    if not string:
-        return tokens
-
-    min_char_len, max_char_len = ngram_range
-    for ngram_len in range(min_char_len, max_char_len + 1):
-        ngrams = get_ngrams(string=string, n=ngram_len, pad=True)
-        tokens.extend(ngrams)
-    return tokens
+from fuzzy_lightning.tokenize import tokenize_string_chars
 
 
 @dataclass
@@ -102,6 +58,8 @@ class FuzzyMatchConfig:
             string.
         n_threads (int): Number of threads to use when finding the n_top_candidates. Increasing the number of threads
             reduces the run time, but there becomes a trade off in production where there may be 'thread congestion'.
+        pad_string (bool): Whether to pad the start and end of strings with '-' before tokenization. This gives a fairer
+            amount of importance to ngrams at the start and end of strings.
         string_preprocessor (Optional[Callable[[str], str]]): A callable that takes in a string and returns a processed
             string. This can be used to perform any preprocessing steps on the input strings before they are compared.
     """
@@ -119,6 +77,7 @@ class FuzzyMatchConfig:
     use_threads: bool = True
     n_threads: int = 4
     # preprocessing config
+    pad_string: bool = True
     string_preprocessor: Optional[Callable[[str], str]] = None
 
 
@@ -201,7 +160,8 @@ class FuzzyMatch:
         For a series of strings, find the closest match in the lookup specified along with the match confidence.
         Args:
             strings (List[str]): Strings to match.
-            # TODO: DOC and below func
+            prune_with_lcs (bool): Whether to use LCS (match ratio) confidence instead of default TFIDF
+            (cosine similarity).
         Returns:
             List[DocumentMatch]: Fuzzy matches (match and confidence).
         """
