@@ -14,7 +14,7 @@ scipy = ">=1.7.0"
 pybind11 = ">=2.6.0"
 scikit-learn = ">=1.0.2"
 
-[tool.poetry.group.dev.dependencies]
+[tool.poetry.dev-dependencies]
 twine = "^4.0.2"
 black = "^22.10.0"
 isort = "^5.10.1"
