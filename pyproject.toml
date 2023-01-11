@@ -41,5 +41,4 @@ build-backend = "setuptools.build_meta"
 script = "build.py"
 
 [tool.cibuildwheel]
-skip = "cp36-*"
-skip = "cp37-*"
+skip = ["cp36-*", "cp37-*"]
