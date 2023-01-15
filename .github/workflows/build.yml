@@ -20,6 +20,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      
+      - name: Install pybind11
+        run: pipx install pybind11
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.11.4
@@ -33,6 +36,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install pybind11
+        run: pipx install pybind11
 
       - name: Build sdist
         run: pipx run build --sdist
