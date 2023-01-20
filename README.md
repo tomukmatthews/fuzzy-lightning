@@ -8,11 +8,12 @@ Fuzzy lightning works by:
 2. Generates a shortlist of match candidates from the top N nearest neighbours (using cosine similarity).
 3. This list of candidates is then pruned to select the best match using the longest common substring to length ratio.
 
-Installation
+### Quick Start
+
+#### Installation
 
 `pip install fuzzy-lightning`
 
-### Quick Start
 Finding the closest matches in a list of documents for a list of input strings:
 
 ```
