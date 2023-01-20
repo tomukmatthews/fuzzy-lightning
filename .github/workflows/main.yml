@@ -66,6 +66,7 @@ jobs:
           
       - name: Run pytests
         run: |
+          poetry run python setup.py install
           poetry run pytest tests
 
       - name: Run black formatting check
