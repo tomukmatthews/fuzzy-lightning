@@ -35,7 +35,7 @@ The output is a list of DocumentMatch objects, each with a match attribute that 
 If you want to find the closest match for a single string, you can use the get_lookup_match method:
 
 ```
-match = fuzzy_matcher.get_lookup_match('SMART PIGGIE')
+match = fuzzy_matcher.get_document_match('SMARTPIGGIE')
 print(match)
 >>> DocumentMatch(match='SMARTPIG', confidence=1.0)
 ```
@@ -73,7 +73,7 @@ def preprocessor(string: str) -> str:
     return string.lower().replace(" ", "")
 
 config = FuzzyMatchConfig(n_gram_range=(1, 2), string_preprocessor=preprocessor)
-fuzzy_matcher = FuzzyMatch(documents=documents, config=config)
+fuzzy_matcher = FuzzyMatch(documents=['abc', 'def'], config=config)
 ```
 
 ## Longest Common Substring
@@ -85,6 +85,20 @@ from fuzzy_lightning import lcs
 lcs.longest_common_substring_length('beersteinbeer', 'stein')
 >>> 5
 ```
+
+In terms of latency, a single longest common substring length call is < 0.5μs
+
+```
+from fuzzy_lightning import lcs
+from timeit import timeit
+
+n_iter = 1000000
+timeit("lcs.longest_common_substring_length('beersteinbeer', 'stein')", globals=globals(), number=n_iter)/n_iter
+
+>>> 3.182171669322997e-07
+```
+
+
 
 ## Edit Distance Algorithms
 
