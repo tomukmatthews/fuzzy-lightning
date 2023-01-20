@@ -1,24 +1,26 @@
 # fuzzy-lightning
 
-fuzzy-lightning is a fast and customizable package for finding the closest matches in a list of target strings (documents) using fuzzy string matching. It is particularly effective for short string matching against large document sets, and includes the fastest implementation of the Damerau-Levenshtein and longest common substring algorithms in its class.
+Fuzzy lightning is a fast and customizable package for finding the closest matches in a list of target strings (documents) using fuzzy string matching. It is particularly effective for short string matching against large document sets, and includes the fastest implementation of the Damerau-Levenshtein and longest common substring algorithms in its class.
 
 ## Introduction
-This package provides a fuzzy string matching algorithm for finding the closest matches in a list of target strings (documents). It converts strings to vectors using a sklearn TF-IDF vectorizer on character n-grams and then generates a shortlist of match candidates from the top N nearest neighbors (cosine similarity) of dictionary key vectors for each string (ordered from best match to worst). This list of candidates is then pruned to select the best match using the longest common substring to length ratio.
+Fuzzy lightning works by:
+1. Converts strings to embedding vectors using an sklearn TF-IDF vectorizer on character n-grams.
+2. Generates a shortlist of match candidates from the top N nearest neighbours (using cosine similarity).
+3. This list of candidates is then pruned to select the best match using the longest common substring to length ratio.
 
 Installation
-To install the package, run the following command:
 
 `pip install fuzzy-lightning`
 
 ### Quick Start
-Here is an example of how to use the FuzzyMatch class to find the closest matches in a list of documents for a list of input strings:
+Finding the closest matches in a list of documents for a list of input strings:
 
 ```
 from fuzzy_lightning import FuzzyMatch
 
 documents = ["SMARTEST ENERGY", "SMARTPIG"]
 fuzzy_matcher = FuzzyMatch(documents=documents)
-strings = ['Smart Piggie', 'the smartest energy']
+strings = ['SMARTPIGGIE', 'THE SMARTEST ENERGY']
 matches = fuzzy_matcher.get_document_matches(strings=strings)
 print(matches)
 >>> [
