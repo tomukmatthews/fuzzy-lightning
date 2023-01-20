@@ -86,6 +86,20 @@ lcs.longest_common_substring_length('beersteinbeer', 'stein')
 >>> 5
 ```
 
+In terms of latency, a single longest common substring length call is < 0.5μs
+
+```
+from fuzzy_lightning import lcs
+from timeit import timeit
+
+n_iter = 1000000
+timeit("lcs.longest_common_substring_length('beersteinbeer', 'stein')", globals=globals(), number=n_iter)/n_iter
+
+>>> 3.182171669322997e-07
+```
+
+
+
 ## Edit Distance Algorithms
 
 ### Damerau-Levenshtein
@@ -107,14 +121,3 @@ print(dist)
 1. C++
 2. Dynamic Programming
 3. Cache locality benefits of using a 1D array to mimic the behaviour of a 2D array
-
-e.g. a single longest common substring length call is < 0.5μs
-```
-from fuzzy_lightning import lcs
-from timeit import timeit
-
-n_iter = 1000000
-timeit("lcs.longest_common_substring_length('beersteinbeer', 'stein')", globals=globals(), number=n_iter)/n_iter
-
->>> 3.182171669322997e-07
-```

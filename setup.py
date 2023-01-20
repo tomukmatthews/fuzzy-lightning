@@ -48,6 +48,7 @@ setup_kwargs = {
     'package_data': package_data,
     'install_requires': install_requires,
     'python_requires': '>=3.8.1,<4.0.0',
+    'keywords': ['Fuzzy', 'String', 'Lookup', 'Search', 'Match', 'Similarity'],
 }
 
 build(setup_kwargs)
