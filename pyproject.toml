@@ -32,13 +32,8 @@ line_length = 120
 profile = "black"
 
 [build-system]
-requires = ["setuptools>=61.0.0", "wheel"]
+requires = ["setuptools>=42", "wheel", "pybind11~=2.6.1"]
 build-backend = "setuptools.build_meta"
-# requires = ["poetry-core"]
-# build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.build]
-script = "build.py"
 
 [tool.cibuildwheel]
 skip = ["cp36-*", "cp37-*"]
