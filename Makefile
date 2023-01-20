@@ -17,4 +17,4 @@ upload:
 	twine upload dist/*
 
 clean:
-	rm -rf build dist .eggs *.egg-info
+	rm -rf build dist .eggs *.egg-info venv
