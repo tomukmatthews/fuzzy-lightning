@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fuzzy-lightning"
-version = "0.1.5"
+version = "0.1.6"
 description = "Perform fast approximate string matching."
 license = "MIT"
 authors = ["Tom Matthews <tomukmatthews@gmail.com>"]
