@@ -12,7 +12,7 @@ Fuzzy lightning works by:
 
 #### Installation
 
-`pip install fuzzy-lightning==0.1.6`
+`pip install fuzzy-lightning`
 
 Finding the closest matches in a list of documents for a list of input strings:
 
